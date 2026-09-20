@@ -66,19 +66,20 @@ class HansungDriver(HidDriver):
         percent = res[11]
         charging = not(bool(res[7]))
 
-        response="%s", " ".join(f"{x:02X}" for x in res)
+        response=" ".join(f"{x:02X}" for x in res)
 
         if getattr(self, "_last_percent", None) != percent:
             log.info("%s battery=%d%%", self.name, percent)
             self._last_percent = percent
 
         if getattr(self, "_last_response", None) != response:
-            log.debug("%s battery report: %s", self.name, response[1])
+            log.debug("%s battery report: %s", self.name, response)
             self._last_response = response
-        
+
         if getattr(self, "_last_charging", None) != charging:
             log.info("%s battery charging: %s", self.name, charging)
             self._last_charging = charging
+            # This mouse doesn't report its battery percentage while charging, so return full=True once if the battery is at 100% when charging stops.
             if charging==False and percent==100:
                 return BatteryStatus(
                     present=True,
