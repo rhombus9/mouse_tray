@@ -3,7 +3,7 @@
 # SET_FEATURE / Report ID 0x51:
 #   51 06 00 00 00 00 ...
 # or 
-#   51 03 00 00 00 00 ...
+#   51 03 00 00 00 00 ... <- seems like not working, reports all 00 from 9th byte
 #
 # followed by GET_FEATURE / Report ID 0x51.
 #
@@ -19,7 +19,7 @@
 # When SET_FEATURE is 51 03 ...
 # Byte  7 is the charging state(opposite).
 #
-# Charging:                          []
+# Charging:                          [] []
 #   51 06 01 00 8A 24 3B FF 00 01 01 64 01 00 01 ...
 # Not charging:
 #   51 06 01 00 8A 24 3B FF 00 01 09 64 00 00 01 ...
@@ -55,7 +55,7 @@ class HansungDriver(HidDriver):
     def read_status(self) -> BatteryStatus:
         
         res = self._transact(
-            [0x51, 0x03, 0x00],
+            [0x51, 0x06, 0x00],
             read_length=21,
             feature=True,
         )
@@ -64,9 +64,11 @@ class HansungDriver(HidDriver):
             return BatteryStatus.absent()
 
         percent = res[11]
-        charging = not(bool(res[7]))
+        charging = bool(res[12])
 
         response=" ".join(f"{x:02X}" for x in res)
+
+        log.debug("%s battery=%d%%, %scharging", self.name, percent, "not " if not charging else "")
 
         if getattr(self, "_last_percent", None) != percent:
             log.info("%s battery=%d%%", self.name, percent)
